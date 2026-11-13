@@ -143,23 +143,8 @@
         0.747,
         0.818
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-1",
-          "author": "Metteuse en scène",
-          "content": "La douceur du feutre colle exactement au réveil de Tessa. Garder cette version.",
-          "createdAt": "2026-11-10T10:15:00Z",
-          "timestampSeconds": null
-        },
-        {
-          "id": "comm-2",
-          "author": "Metteuse en scène",
-          "content": "Parfait ici : faire monter la nappe quand elle évoque son soutien-gorge.",
-          "createdAt": "2026-11-10T10:16:30Z",
-          "timestampSeconds": 24
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-01T10:00:00Z",
       "updatedAt": "2026-11-10T10:16:30Z"
     },
@@ -304,16 +289,8 @@
         0.97,
         0.98
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-3",
-          "author": "Metteuse en scène",
-          "content": "Très belle spatialisation des frottements de verres.",
-          "createdAt": "2026-11-08T16:20:00Z",
-          "timestampSeconds": 42
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-02T11:00:00Z",
       "updatedAt": "2026-11-08T16:20:00Z"
     },
@@ -458,16 +435,8 @@
         0.691,
         0.811
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-4",
-          "author": "Metteuse en scène",
-          "content": "L'effet de sidération fonctionne à merveille au plateau. Les comédiens se figent pile sur l'impact.",
-          "createdAt": "2026-11-09T18:00:00Z",
-          "timestampSeconds": 12
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-03T09:30:00Z",
       "updatedAt": "2026-11-09T18:00:00Z"
     },
@@ -612,16 +581,8 @@
         0.414,
         0.326
       ],
-      "validationStatus": "needs_work",
-      "comments": [
-        {
-          "id": "comm-5",
-          "author": "Metteuse en scène",
-          "content": "Est-il possible d'atténuer un tout petit peu l'aigu à 8 kHz pour que le monologue de Tessa reste bien intelligible sans agresser les premiers rangs ?",
-          "createdAt": "2026-11-11T14:10:00Z",
-          "timestampSeconds": 58
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-04T14:00:00Z",
       "updatedAt": "2026-11-11T14:10:00Z"
     },
@@ -766,16 +727,8 @@
         0.97,
         0.98
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-6",
-          "author": "Metteuse en scène",
-          "content": "Bouleversant. Cette respiration lumineuse au milieu du cauchemar est le cœur de la scène.",
-          "createdAt": "2026-11-10T11:45:00Z",
-          "timestampSeconds": null
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-05T15:00:00Z",
       "updatedAt": "2026-11-10T11:45:00Z"
     },
@@ -921,15 +874,7 @@
         0.792
       ],
       "validationStatus": "discussing",
-      "comments": [
-        {
-          "id": "comm-7",
-          "author": "Metteuse en scène",
-          "content": "La fin est un peu abrupte. Est-ce qu'on peut prolonger le résonateur de quelques secondes en fondu ?",
-          "createdAt": "2026-11-12T09:30:00Z",
-          "timestampSeconds": 210
-        }
-      ],
+      "comments": [],
       "createdAt": "2026-11-06T16:00:00Z",
       "updatedAt": "2026-11-12T09:30:00Z"
     },
@@ -1074,16 +1019,8 @@
         0.197,
         0.129
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-8",
-          "author": "Metteuse en scène",
-          "content": "Énergie physique incroyable. Les lumières vont se calquer sur ce kick.",
-          "createdAt": "2026-11-12T17:00:00Z",
-          "timestampSeconds": 30
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-07T10:00:00Z",
       "updatedAt": "2026-11-12T17:00:00Z"
     },
@@ -1228,16 +1165,8 @@
         0.735,
         0.68
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-9",
-          "author": "Metteuse en scène",
-          "content": "La tension humaine est palpable sans jamais tomber dans le pathos. Magnifique.",
-          "createdAt": "2026-11-12T19:00:00Z",
-          "timestampSeconds": null
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-08T14:00:00Z",
       "updatedAt": "2026-11-12T19:00:00Z"
     },
@@ -1382,16 +1311,8 @@
         0.289,
         0.359
       ],
-      "validationStatus": "validated",
-      "comments": [
-        {
-          "id": "comm-10",
-          "author": "Metteuse en scène",
-          "content": "Final parfait pour le noir public. Les comédiennes ont pleuré lors du premier raccord son.",
-          "createdAt": "2026-11-13T11:00:00Z",
-          "timestampSeconds": 60
-        }
-      ],
+      "validationStatus": "discussing",
+      "comments": [],
       "createdAt": "2026-11-09T18:00:00Z",
       "updatedAt": "2026-11-13T11:00:00Z"
     }
