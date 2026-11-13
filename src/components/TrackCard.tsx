@@ -10,10 +10,7 @@ import {
   MessageSquare,
   Trash2,
   Edit3,
-  Clock,
-  Send,
   X,
-  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -52,11 +49,8 @@ export function TrackCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isThisTrackActive = currentTrack?.id === track.id;
-
-  const act = scriptStructure.acts.find((a) => a.id === track.actId);
   const cue = scriptStructure.cues.find((c) => c.id === track.cueId);
 
-  // Quick 1-click status change
   const handleValidationChange = async (status: ValidationStatus) => {
     try {
       const res = await fetch(`/api/tracks/${track.id}/validation`, {
@@ -73,7 +67,6 @@ export function TrackCard({
     }
   };
 
-  // Add comment
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -103,7 +96,6 @@ export function TrackCard({
     }
   };
 
-  // Delete comment
   const handleDeleteComment = async (commentId: string) => {
     try {
       const res = await fetch(`/api/tracks/${track.id}/comments?commentId=${commentId}`, {
@@ -126,38 +118,39 @@ export function TrackCard({
 
   return (
     <div
-      className={`relative rounded-2xl transition-all duration-200 border ${
+      className={`rounded-2xl transition-all duration-150 border ${
         isThisTrackActive
-          ? "bg-white/75 dark:bg-zinc-900/80 border-blue-500/40 dark:border-blue-400/30 shadow-md ring-1 ring-blue-500/20"
-          : "bg-white/45 dark:bg-zinc-900/45 border-white/60 dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 shadow-sm"
-      } backdrop-blur-xl p-3.5 sm:p-4 space-y-2.5`}
+          ? "bg-white/85 dark:bg-zinc-900/85 border-blue-500/40 dark:border-blue-400/30 shadow-md ring-1 ring-blue-500/20"
+          : "bg-white/50 dark:bg-zinc-900/50 border-white/70 dark:border-white/10 hover:border-black/10 dark:hover:border-white/20 shadow-xs"
+      } backdrop-blur-xl p-3.5 sm:p-4 space-y-2`}
     >
-      {/* Top Header Row: Track title, metadata, validation pill, actions */}
-      <div className="flex items-center justify-between gap-3">
-        {/* Title & Metadata */}
+      {/* Top Row : Title, tempo, validation, actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Track Title & Version */}
         <div className="flex items-baseline gap-2 min-w-0">
           <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate">
             {track.title}
           </h3>
-          <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-zinc-500 dark:text-zinc-400">
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-zinc-500 dark:text-zinc-400">
             {track.version || "V1"}
           </span>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500 hidden sm:inline">•</span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate hidden sm:inline">
-            {track.keyMode || "Dorien"} {track.bpm ? `• ${track.bpm}` : ""}
-          </span>
+          {track.tempo && (
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 font-mono hidden sm:inline">
+              • {track.tempo}
+            </span>
+          )}
         </div>
 
-        {/* Right side: Compact validation selector + comment & download */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* Compact 1-click status tabs */}
+        {/* Action icons & Validation */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Validation Status Selector */}
           <div className="flex items-center rounded-lg bg-black/[0.04] dark:bg-white/[0.06] p-0.5 text-[11px]">
             <button
               onClick={() => handleValidationChange("validated")}
-              title="Valider la piste"
+              title="Valider"
               className={`px-2 py-0.5 rounded-md transition-all ${
                 track.validationStatus === "validated"
-                  ? "bg-emerald-500 text-white font-medium shadow-xs"
+                  ? "bg-emerald-500 text-white font-medium"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -168,7 +161,7 @@ export function TrackCard({
               title="À ajuster"
               className={`px-2 py-0.5 rounded-md transition-all ${
                 track.validationStatus === "needs_work"
-                  ? "bg-amber-500 text-white font-medium shadow-xs"
+                  ? "bg-amber-500 text-white font-medium"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -179,7 +172,7 @@ export function TrackCard({
               title="En réflexion"
               className={`px-2 py-0.5 rounded-md transition-all ${
                 track.validationStatus === "discussing"
-                  ? "bg-zinc-700 text-white dark:bg-zinc-200 dark:text-zinc-900 font-medium shadow-xs"
+                  ? "bg-zinc-700 text-white dark:bg-zinc-200 dark:text-zinc-900 font-medium"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -187,10 +180,10 @@ export function TrackCard({
             </button>
           </div>
 
-          {/* Comment button with badge */}
+          {/* Comment button */}
           <button
             onClick={() => setShowComments(!showComments)}
-            title="Commentaires de répétition"
+            title="Commentaires"
             className={`relative p-1.5 rounded-lg transition-colors ${
               showComments || commentsCount > 0
                 ? "text-blue-600 dark:text-blue-400 bg-blue-500/10"
@@ -209,13 +202,13 @@ export function TrackCard({
           <a
             href={`/api/audio/${track.id}?download=true`}
             download={track.fileName}
-            title="Télécharger l'audio source (.wav/.mp3)"
+            title="Télécharger le fichier source"
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
           </a>
 
-          {/* Admin controls */}
+          {/* Admin Edit/Delete */}
           {isAdmin && (
             <div className="flex items-center gap-0.5 pl-1 border-l border-black/10 dark:border-white/10">
               <button
@@ -241,7 +234,7 @@ export function TrackCard({
         </div>
       </div>
 
-      {/* Discrete Cue Link (Single line, discreet) */}
+      {/* Discrete Cue / Script Text Link */}
       {(track.cueQuote || cue) && (
         <div className="flex items-baseline gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           <button
@@ -257,10 +250,9 @@ export function TrackCard({
         </div>
       )}
 
-      {/* Waveform Player */}
+      {/* Centered Waveform Player */}
       <WaveformPlayer
         track={track}
-        compact
         onCommentClick={() => setShowComments(true)}
       />
 
@@ -271,14 +263,13 @@ export function TrackCard({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
-            className="pt-2 border-t border-black/[0.05] dark:border-white/[0.06] space-y-2.5 overflow-hidden"
+            transition={{ duration: 0.16 }}
+            className="pt-2 border-t border-black/[0.05] dark:border-white/[0.06] space-y-2 overflow-hidden"
           >
-            {/* List of comments */}
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {commentsCount === 0 ? (
                 <p className="text-[11px] text-zinc-400 italic py-0.5">
-                  Aucune remarque pour le moment.
+                  Aucun retour pour le moment.
                 </p>
               ) : (
                 track.comments.map((comment) => (
@@ -333,13 +324,13 @@ export function TrackCard({
               )}
             </div>
 
-            {/* Quick comment input */}
+            {/* Quick Comment Input */}
             <form onSubmit={handleAddComment} className="flex items-center gap-2 pt-0.5">
               <input
                 type="text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Ajouter une remarque..."
+                placeholder="Laisser une remarque..."
                 className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/5 dark:border-white/10 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
 

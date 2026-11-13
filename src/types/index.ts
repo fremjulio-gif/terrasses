@@ -1,8 +1,8 @@
 export type ValidationStatus = "validated" | "needs_work" | "discussing";
 
-export type TrackCategory = "original" | "remix" | "sound_design" | "ambience";
+export type TrackCategory = "original" | "sound_design" | "ambience";
 
-export type RightsStatus = "100% Libre" | "CC-BY / CC0" | "SACEM" | "Original Score";
+export type RightsStatus = "100% Libre" | "SACEM" | "Original Score";
 
 export interface TrackComment {
   id: string;
@@ -22,15 +22,13 @@ export interface AudioTrack {
   mimeType: string;
   driveFileId?: string;
   localPath?: string;
+  sectionId?: string;
   cueId?: string;
-  actId?: string;
-  sceneId?: string;
   pdfPage?: number;
   cueQuote?: string;
-  bpm?: string | number;
-  keyMode?: string;
-  rightsStatus: RightsStatus;
-  notes?: string;
+  tempo?: string; // ex: "~72 BPM", "Rubato", "~124 BPM"
+  intention?: string; // Intention théâtrale simple (ex: "Attente amoureuse", "Sidération")
+  rightsStatus?: RightsStatus;
   version: string;
   peaks?: number[];
   validationStatus: ValidationStatus;
@@ -39,48 +37,24 @@ export interface AudioTrack {
   updatedAt: string;
 }
 
-export interface MusicalAxis {
-  title: string;
-  context: string;
-  keyMode: string;
-  tempo: string;
-  chords: string;
-  vstTools: string;
-  color: string;
-}
-
-export interface Scene {
+export interface ScriptSection {
   id: string;
-  number: number;
-  title: string;
-  location: string;
-  characters: string[];
-  summary: string;
-  pageStart: number;
-  pageEnd: number;
-}
-
-export interface Act {
-  id: string;
-  number: number;
   title: string;
   subtitle: string;
   pageRange: string;
-  musical: MusicalAxis;
-  scenes: Scene[];
+  pageStart: number;
+  pageEnd: number;
+  intention: string;
 }
 
 export interface ScriptCue {
   id: string;
-  actId: string;
-  sceneId: string;
+  sectionId: string;
   page: number;
   speaker: string;
-  stageDirection?: string;
   cueText: string;
   fullText: string;
-  suggestedTrack?: string;
-  modeBpm?: string;
+  mood?: string;
 }
 
 export interface Character {
@@ -94,12 +68,10 @@ export interface ScriptStructure {
     author: string;
     sourcePdf: string;
     totalPages: number;
-    extractedAt: string;
     version: string;
   };
-  musicalAxes: Record<string, MusicalAxis>;
   characters: Character[];
-  acts: Act[];
+  sections: ScriptSection[];
   cues: ScriptCue[];
 }
 

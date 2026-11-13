@@ -2,57 +2,55 @@
 
 import React from "react";
 import { ScriptStructure, ValidationStatus } from "@/types";
-import { Layers } from "lucide-react";
 
-interface ActFilterBarProps {
+interface SectionFilterBarProps {
   scriptStructure: ScriptStructure;
-  selectedActId: string | null;
+  selectedSectionId: string | null;
   selectedStatus: ValidationStatus | "all";
-  onSelectAct: (actId: string | null) => void;
+  onSelectSection: (sectionId: string | null) => void;
   onSelectStatus: (status: ValidationStatus | "all") => void;
-  trackCountsByAct: Record<string, number>;
+  trackCountsBySection: Record<string, number>;
   totalTracks: number;
 }
 
-export function ActFilterBar({
+export function SectionFilterBar({
   scriptStructure,
-  selectedActId,
+  selectedSectionId,
   selectedStatus,
-  onSelectAct,
+  onSelectSection,
   onSelectStatus,
-  trackCountsByAct,
+  trackCountsBySection,
   totalTracks,
-}: ActFilterBarProps) {
+}: SectionFilterBarProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1 select-none">
-      {/* Acts Tabs */}
+      {/* Séquences scéniques du texte (sans inventer d'actes) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         <button
-          onClick={() => onSelectAct(null)}
+          onClick={() => onSelectSection(null)}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            selectedActId === null
+            selectedSectionId === null
               ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
               : "bg-black/[0.04] text-zinc-600 hover:bg-black/[0.08] dark:bg-white/[0.06] dark:text-zinc-400 dark:hover:bg-white/[0.12]"
           }`}
         >
-          <span>Toutes</span>
+          <span>Toute la pièce</span>
           <span className="text-[10px] font-mono opacity-70">({totalTracks})</span>
         </button>
 
-        {scriptStructure.acts.map((act) => {
-          const count = trackCountsByAct[act.id] || 0;
-          const roman = act.number === 1 ? "I" : act.number === 2 ? "II" : act.number === 3 ? "III" : "IV";
+        {scriptStructure.sections?.map((sec) => {
+          const count = trackCountsBySection[sec.id] || 0;
           return (
             <button
-              key={act.id}
-              onClick={() => onSelectAct(act.id)}
+              key={sec.id}
+              onClick={() => onSelectSection(sec.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                selectedActId === act.id
+                selectedSectionId === sec.id
                   ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
                   : "bg-black/[0.04] text-zinc-600 hover:bg-black/[0.08] dark:bg-white/[0.06] dark:text-zinc-400 dark:hover:bg-white/[0.12]"
               }`}
             >
-              <span>Acte {roman}</span>
+              <span>{sec.title}</span>
               <span className="text-[10px] font-mono opacity-70">({count})</span>
             </button>
           );

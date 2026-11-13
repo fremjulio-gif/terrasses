@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Loader2,
   Sparkles,
-  Music,
 } from "lucide-react";
 import { ScriptStructure, AudioTrack, RightsStatus, TrackCategory } from "@/types";
 
@@ -29,10 +28,6 @@ interface AdminModalProps {
   onLogout: () => void;
 }
 
-/**
- * Compute audio waveform peaks client-side in seconds using OfflineAudioContext.
- * Generates lightweight normalized JSON array for instant 10ms waveform render!
- */
 async function computeAudioPeaks(
   file: File,
   peakCount: number = 120
@@ -60,8 +55,6 @@ async function computeAudioPeaks(
 
     return { peaks, duration: Math.round(audioBuffer.duration) };
   } catch (err) {
-    console.warn("Client peak computation failed, fallback to estimated peaks:", err);
-    // Fallback pseudo peaks
     const peaks: number[] = [];
     for (let i = 0; i < peakCount; i++) {
       peaks.push(Number((0.2 + Math.random() * 0.6).toFixed(3)));
@@ -82,72 +75,49 @@ export function AdminModal({
   onTrackUpdated,
   onLogout,
 }: AdminModalProps) {
-  // Login PIN state
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
 
-  // Upload & Form state
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "computing_peaks" | "uploading" | "saving" | "done" | "error">("idle");
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Track metadata fields
   const [title, setTitle] = useState(editingTrack?.title || "");
-  const [category, setCategory] = useState<TrackCategory>(editingTrack?.category || "original");
   const [version, setVersion] = useState(editingTrack?.version || "V1");
-  const [actId, setActId] = useState(editingTrack?.actId || "act-1");
-  const [sceneId, setSceneId] = useState(editingTrack?.sceneId || "act-1-sc-1");
+  const [sectionId, setSectionId] = useState(editingTrack?.sectionId || "seq-1");
   const [cueId, setCueId] = useState(editingTrack?.cueId || "");
   const [pdfPage, setPdfPage] = useState(editingTrack?.pdfPage || 1);
   const [cueQuote, setCueQuote] = useState(editingTrack?.cueQuote || "");
-  const [bpm, setBpm] = useState(editingTrack?.bpm || "72 BPM");
-  const [keyMode, setKeyMode] = useState(editingTrack?.keyMode || "Fa Lydien");
-  const [rightsStatus, setRightsStatus] = useState<RightsStatus>(editingTrack?.rightsStatus || "100% Libre");
-  const [notes, setNotes] = useState(editingTrack?.notes || "");
+  const [tempo, setTempo] = useState(editingTrack?.tempo || "~72 BPM");
+  const [intention, setIntention] = useState(editingTrack?.intention || "");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync state if editing an existing track
   React.useEffect(() => {
     if (editingTrack) {
       setTitle(editingTrack.title);
-      setCategory(editingTrack.category);
       setVersion(editingTrack.version);
-      setActId(editingTrack.actId || "act-1");
-      setSceneId(editingTrack.sceneId || "act-1-sc-1");
+      setSectionId(editingTrack.sectionId || "seq-1");
       setCueId(editingTrack.cueId || "");
       setPdfPage(editingTrack.pdfPage || 1);
       setCueQuote(editingTrack.cueQuote || "");
-      setBpm(editingTrack.bpm || "72 BPM");
-      setKeyMode(editingTrack.keyMode || "Fa Lydien");
-      setRightsStatus(editingTrack.rightsStatus || "100% Libre");
-      setNotes(editingTrack.notes || "");
+      setTempo(editingTrack.tempo || "~72 BPM");
+      setIntention(editingTrack.intention || "");
     }
   }, [editingTrack]);
 
-  // When selecting an Act, filter available scenes
-  const selectedAct = scriptStructure.acts.find((a) => a.id === actId);
-  const availableScenes = selectedAct?.scenes || [];
-
-  // When selecting a Cue from dropdown, autofill quote & page & musical mode
   const handleCueSelect = (id: string) => {
     setCueId(id);
     const found = scriptStructure.cues.find((c) => c.id === id);
     if (found) {
-      setActId(found.actId);
-      setSceneId(found.sceneId);
+      setSectionId(found.sectionId);
       setPdfPage(found.page);
       setCueQuote(found.cueText);
-      if (found.modeBpm) {
-        setKeyMode(found.modeBpm.split("-")[0]?.trim() || keyMode);
-      }
     }
   };
 
-  // Submit PIN
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsVerifyingPin(true);
@@ -163,7 +133,7 @@ export function AdminModal({
       if (data.success && data.authorized) {
         onLoginSuccess(pinInput);
       } else {
-        setPinError(data.error || "Code PIN incorrect (par défaut: 0000)");
+        setPinError(data.error || "Code PIN incorrect (0000)");
       }
     } catch (err) {
       setPinError("Erreur de connexion");
@@ -172,7 +142,6 @@ export function AdminModal({
     }
   };
 
-  // Handle Drag & Drop
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -188,17 +157,15 @@ export function AdminModal({
     }
   };
 
-  // Submit Upload or Edit form
   const handleSaveTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) {
-      setErrorMessage("Le titre de la composition est requis.");
+      setErrorMessage("Le titre est requis.");
       return;
     }
 
     setErrorMessage("");
 
-    // CASE 1: Editing existing track metadata without uploading new file
     if (editingTrack && !fileToUpload) {
       setUploadStatus("saving");
       try {
@@ -209,17 +176,13 @@ export function AdminModal({
             adminPin,
             updates: {
               title,
-              category,
               version,
-              actId,
-              sceneId,
+              sectionId,
               cueId,
               pdfPage: Number(pdfPage),
               cueQuote,
-              bpm,
-              keyMode,
-              rightsStatus,
-              notes,
+              tempo,
+              intention,
             },
           }),
         });
@@ -230,7 +193,7 @@ export function AdminModal({
           setTimeout(() => {
             onClose();
             setUploadStatus("idle");
-          }, 1000);
+          }, 800);
         } else {
           setErrorMessage(data.error || "Échec de la mise à jour");
           setUploadStatus("error");
@@ -242,18 +205,15 @@ export function AdminModal({
       return;
     }
 
-    // CASE 2: Uploading a new audio file (.wav / .mp3)
     if (!fileToUpload) {
       setErrorMessage("Veuillez sélectionner un fichier audio (.wav ou .mp3).");
       return;
     }
 
     try {
-      // 1. Compute waveform peaks client-side in OfflineAudioContext
       setUploadStatus("computing_peaks");
       const { peaks, duration } = await computeAudioPeaks(fileToUpload);
 
-      // 2. Request Resumable Upload URL from Google Drive API
       setUploadStatus("uploading");
       const initRes = await fetch("/api/upload/init-resumable", {
         method: "POST",
@@ -274,7 +234,6 @@ export function AdminModal({
       let localPath: string | undefined = undefined;
 
       if (initData.mode === "drive_resumable") {
-        // Direct browser-to-Drive upload (bypasses serverless payload limits)
         const driveUploadRes = await fetch(initData.uploadUrl, {
           method: "PUT",
           headers: {
@@ -284,13 +243,12 @@ export function AdminModal({
         });
 
         if (!driveUploadRes.ok) {
-          throw new Error("L'envoi direct vers Google Drive a échoué.");
+          throw new Error("L'envoi vers Google Drive a échoué.");
         }
 
         const driveData = await driveUploadRes.json();
         driveFileId = driveData.id;
       } else {
-        // Fallback local upload
         const formData = new FormData();
         formData.append("file", fileToUpload);
         formData.append("adminPin", adminPin);
@@ -306,26 +264,22 @@ export function AdminModal({
         localPath = localData.localPath;
       }
 
-      // 3. Register Track in terrasses-db.json
       setUploadStatus("saving");
       const newTrackPayload: Partial<AudioTrack> = {
         title,
-        category,
+        category: "original",
         fileName: fileToUpload.name,
         fileSize: fileToUpload.size,
         duration: duration || 60,
         mimeType: fileToUpload.type || "audio/wav",
         driveFileId,
         localPath,
-        actId,
-        sceneId,
+        sectionId,
         cueId,
         pdfPage: Number(pdfPage),
         cueQuote,
-        bpm,
-        keyMode,
-        rightsStatus,
-        notes,
+        tempo,
+        intention,
         version,
         peaks,
         validationStatus: "discussing",
@@ -333,7 +287,6 @@ export function AdminModal({
       };
 
       if (editingTrack) {
-        // Replacing audio version on existing track
         const updateRes = await fetch(`/api/tracks/${editingTrack.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -347,7 +300,6 @@ export function AdminModal({
           onTrackUpdated(updateData.track);
         }
       } else {
-        // Creating new track
         const createRes = await fetch("/api/tracks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -367,9 +319,8 @@ export function AdminModal({
         onClose();
         setUploadStatus("idle");
         setFileToUpload(null);
-      }, 1200);
+      }, 800);
     } catch (err: any) {
-      console.error("Save track error:", err);
       setErrorMessage(err.message || "Erreur lors de l'enregistrement");
       setUploadStatus("error");
     }
@@ -380,7 +331,6 @@ export function AdminModal({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -389,59 +339,44 @@ export function AdminModal({
           className="fixed inset-0 bg-black/50 dark:bg-black/75 backdrop-blur-md"
         />
 
-        {/* Modal Window in Apple visionOS Liquid Glass */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur-3xl backdrop-saturate-200 border border-white/80 dark:border-white/15 shadow-2xl z-10 my-8"
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ type: "spring", damping: 25, stiffness: 350 }}
+          className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-3xl border border-white/80 dark:border-white/15 shadow-2xl z-10 my-8"
         >
-          {/* Top specular reflection */}
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white dark:via-white/30 to-transparent" />
-
-          {/* Modal Header */}
-          <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.06] dark:border-white/[0.08]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-sm">
+          <div className="flex items-center justify-between p-5 pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center text-zinc-800 dark:text-zinc-200">
                 {isAdmin ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                  {isAdmin ? (editingTrack ? "Édition de la Piste" : "Espace Compositeur (Admin)") : "Accès Compositeur"}
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                  {isAdmin ? (editingTrack ? "Modifier le morceau" : "Ajouter un morceau") : "Accès Compositeur"}
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {isAdmin
-                    ? "Gestion des morceaux, repères de texte et synchronisation Drive"
-                    : "Entrez le code secret pour débloquer l'upload et l'édition"}
-                </p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* If NOT authenticated: PIN Lock Form */}
           {!isAdmin ? (
-            <div className="p-8 space-y-6">
+            <div className="p-6">
               <form onSubmit={handlePinSubmit} className="space-y-4 max-w-xs mx-auto text-center">
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Veuillez saisir votre code PIN secret :
-                </p>
-
                 <input
                   type="password"
                   maxLength={6}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
-                  placeholder="••••"
+                  placeholder="PIN (0000)"
                   autoFocus
-                  className="w-full text-center tracking-[1em] text-2xl font-mono py-3 rounded-2xl bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full text-center tracking-[0.6em] text-xl font-mono py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
 
                 {pinError && (
@@ -451,21 +386,15 @@ export function AdminModal({
                 <button
                   type="submit"
                   disabled={isVerifyingPin || !pinInput}
-                  className="w-full py-2.5 rounded-full text-sm font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-40 transition-opacity shadow-md flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded-xl text-xs font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-40 transition-opacity"
                 >
-                  {isVerifyingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
-                  <span>Déverrouiller</span>
+                  {isVerifyingPin ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "Déverrouiller"}
                 </button>
-
-                <p className="text-[11px] text-zinc-400">
-                  Astuce : par défaut, le PIN est <code className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">0000</code>.
-                </p>
               </form>
             </div>
           ) : (
-            /* If authenticated: Drag & Drop + Metadata Editor */
-            <form onSubmit={handleSaveTrack} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-              {/* Drag & Drop Upload Zone */}
+            <form onSubmit={handleSaveTrack} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Drag & Drop File */}
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -474,12 +403,12 @@ export function AdminModal({
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative p-6 rounded-3xl border-2 border-dashed transition-all cursor-pointer text-center space-y-2 ${
+                className={`p-4 rounded-2xl border border-dashed transition-all cursor-pointer text-center space-y-1 ${
                   isDragging
                     ? "border-blue-500 bg-blue-500/10"
                     : fileToUpload
                     ? "border-emerald-500/50 bg-emerald-500/5"
-                    : "border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 bg-black/[0.01] dark:bg-white/[0.02]"
+                    : "border-black/10 dark:border-white/10 hover:border-black/20"
                 }`}
               >
                 <input
@@ -499,292 +428,127 @@ export function AdminModal({
                 />
 
                 <div className="flex justify-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-400/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    {fileToUpload ? <FileAudio className="w-6 h-6 text-emerald-500" /> : <UploadCloud className="w-6 h-6" />}
-                  </div>
+                  {fileToUpload ? (
+                    <FileAudio className="w-6 h-6 text-emerald-500" />
+                  ) : (
+                    <UploadCloud className="w-6 h-6 text-zinc-400" />
+                  )}
                 </div>
 
-                {fileToUpload ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 truncate">
-                      {fileToUpload.name}
-                    </p>
-                    <p className="text-xs text-zinc-400">
-                      {(fileToUpload.size / (1024 * 1024)).toFixed(2)} Mo • Peaks calculés automatiquement
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {editingTrack ? "Glissez un nouveau fichier pour remplacer l'audio" : "Glissez votre fichier .wav ou .mp3 ici"}
-                    </p>
-                    <p className="text-xs text-zinc-400">
-                      Gros fichiers .wav supportés sans limite grâce au Resumable Upload Google Drive
-                    </p>
-                  </div>
-                )}
+                <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  {fileToUpload ? fileToUpload.name : "Glisser un fichier .wav ou .mp3"}
+                </p>
               </div>
 
-              {/* Form Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Title */}
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Titre de la composition *
-                  </label>
+              {/* Title & Version */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[11px] font-medium text-zinc-500">Titre</label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: L'Insouciance (Ouverture)"
-                    className="w-full px-3.5 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Titre du morceau"
+                    className="w-full px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
-
-                {/* Category & Version */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Catégorie
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as TrackCategory)}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="original">Composition originale</option>
-                    <option value="remix">Remix / Relecture</option>
-                    <option value="sound_design">Sound Design</option>
-                    <option value="ambience">Bruitage / Ambiance</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Version
-                  </label>
+                  <label className="text-[11px] font-medium text-zinc-500">Version</label>
                   <input
                     type="text"
                     value={version}
                     onChange={(e) => setVersion(e.target.value)}
                     placeholder="V1, V2..."
-                    className="w-full px-3.5 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                {/* Fast Cue / Repère Select from Script */}
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
-                    <span>Associer à un Repère Scénique du Script (Cue)</span>
-                    <span className="text-[10px] text-blue-500 font-normal">Autocomplète l'Acte et la Page</span>
-                  </label>
-                  <select
-                    value={cueId}
-                    onChange={(e) => handleCueSelect(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="">Sélectionner un repère du texte...</option>
-                    {scriptStructure.cues.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        Page {c.page} : [{c.speaker}] {c.cueText.slice(0, 70)}...
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Act & Scene Select */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Acte
-                  </label>
-                  <select
-                    value={actId}
-                    onChange={(e) => {
-                      setActId(e.target.value);
-                      const a = scriptStructure.acts.find((item) => item.id === e.target.value);
-                      if (a && a.scenes.length > 0) {
-                        setSceneId(a.scenes[0].id);
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  >
-                    {scriptStructure.acts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Scène
-                  </label>
-                  <select
-                    value={sceneId}
-                    onChange={(e) => setSceneId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  >
-                    {availableScenes.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Page & Quote */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Page du PDF
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={pdfPage}
-                    onChange={(e) => setPdfPage(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Tonalité & Mode (ex: Fa Lydien, Ré Dorien...)
-                  </label>
-                  <input
-                    type="text"
-                    value={keyMode}
-                    onChange={(e) => setKeyMode(e.target.value)}
-                    placeholder="Fa Lydien"
-                    className="w-full px-3.5 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                {/* BPM & Rights */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    BPM / Tempo
-                  </label>
-                  <input
-                    type="text"
-                    value={bpm}
-                    onChange={(e) => setBpm(e.target.value)}
-                    placeholder="72 BPM, Rubato..."
-                    className="w-full px-3.5 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Droits & Propriété
-                  </label>
-                  <select
-                    value={rightsStatus}
-                    onChange={(e) => setRightsStatus(e.target.value as RightsStatus)}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="100% Libre">100% Libre</option>
-                    <option value="Original Score">Original Score</option>
-                    <option value="CC-BY / CC0">CC-BY / CC0</option>
-                    <option value="SACEM">SACEM</option>
-                  </select>
-                </div>
-
-                {/* Quote details */}
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Citation scénique ou didascalie
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={cueQuote}
-                    onChange={(e) => setCueQuote(e.target.value)}
-                    placeholder="« J'ouvre les yeux. Je me dis que cette journée est belle... »"
-                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100 font-serif"
-                  />
-                </div>
-
-                {/* Notes d'intention */}
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Notes d'intention pour la metteuse en scène
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Piano feutré, bruit mécanique des touches audible..."
-                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white/60 dark:bg-zinc-800/60 border border-white/70 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
+                    className="w-full px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
 
-              {/* Status Message */}
+              {/* Script Cue */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500">
+                  Repère dans le script
+                </label>
+                <select
+                  value={cueId}
+                  onChange={(e) => handleCueSelect(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
+                >
+                  <option value="">Sélectionner une réplique / moment...</option>
+                  {scriptStructure.cues.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      Page {c.page} : [{c.speaker}] {c.cueText.slice(0, 60)}...
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Séquence & Tempo */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-zinc-500">Moment du texte</label>
+                  <select
+                    value={sectionId}
+                    onChange={(e) => setSectionId(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
+                  >
+                    {scriptStructure.sections?.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.title} ({sec.pageRange})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-zinc-500">Tempo indicatif</label>
+                  <input
+                    type="text"
+                    value={tempo}
+                    onChange={(e) => setTempo(e.target.value)}
+                    placeholder="~72 BPM, Rubato..."
+                    className="w-full px-3 py-1.5 rounded-xl text-xs bg-black/[0.03] dark:bg-white/[0.05] border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
               {uploadStatus !== "idle" && (
-                <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center gap-2">
-                  {uploadStatus === "computing_peaks" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                      <span>Calcul instantané de la forme d'onde via OfflineAudioContext...</span>
-                    </>
-                  )}
-                  {uploadStatus === "uploading" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                      <span>Upload vers Google Drive (Resumable Session en cours)...</span>
-                    </>
-                  )}
-                  {uploadStatus === "saving" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                      <span>Enregistrement dans terrasses-db.json...</span>
-                    </>
-                  )}
-                  {uploadStatus === "done" && (
-                    <>
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
-                      <span>Piste enregistrée avec succès !</span>
-                    </>
-                  )}
-                  {uploadStatus === "error" && (
-                    <>
-                      <AlertTriangle className="w-4 h-4 text-rose-500" />
-                      <span>{errorMessage || "Une erreur est survenue"}</span>
-                    </>
-                  )}
+                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Enregistrement en cours...</span>
                 </div>
               )}
 
-              {errorMessage && uploadStatus === "idle" && (
+              {errorMessage && (
                 <p className="text-xs text-rose-500 font-medium">{errorMessage}</p>
               )}
 
-              {/* Footer actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  className="text-[11px] text-zinc-400 hover:text-zinc-600"
                 >
-                  Quitter le mode Admin
+                  Déconnexion
                 </button>
 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="px-3 py-1.5 rounded-xl text-xs text-zinc-500 hover:bg-black/5"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
                     disabled={uploadStatus !== "idle" && uploadStatus !== "error"}
-                    className="px-5 py-2 rounded-full text-xs font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-40 transition-opacity shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-40"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{editingTrack ? "Sauvegarder les modifications" : "Publier la composition"}</span>
+                    Enregistrer
                   </button>
                 </div>
               </div>

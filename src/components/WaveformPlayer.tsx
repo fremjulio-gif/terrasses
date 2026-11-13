@@ -4,13 +4,11 @@ import React, { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import { useAudio } from "@/context/AudioContext";
 import { AudioTrack, TrackComment } from "@/types";
-import { Play, Pause, Repeat, Bookmark } from "lucide-react";
+import { Play, Pause, Repeat } from "lucide-react";
 
 interface WaveformPlayerProps {
   track: AudioTrack;
-  compact?: boolean;
   onCommentClick?: (comment: TrackComment) => void;
-  onAddCommentAtTimecode?: (timeSeconds: number) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -20,12 +18,7 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function WaveformPlayer({
-  track,
-  compact = false,
-  onCommentClick,
-  onAddCommentAtTimecode,
-}: WaveformPlayerProps) {
+export function WaveformPlayer({ track, onCommentClick }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const [localHoverTime, setLocalHoverTime] = useState<number | null>(null);
@@ -49,7 +42,6 @@ export function WaveformPlayer({
   const activeDuration = isCurrentTrack && duration > 0 ? duration : track.duration || 60;
   const activeCurrentTime = isCurrentTrack ? currentTime : 0;
 
-  // Initialize WaveSurfer with peaks
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -66,7 +58,7 @@ export function WaveformPlayer({
       barWidth: 2,
       barGap: 1.5,
       barRadius: 2,
-      height: compact ? 30 : 36,
+      height: 32,
       normalize: true,
       backend: "WebAudio",
       peaks: track.peaks && track.peaks.length > 0 ? [track.peaks] : undefined,
@@ -92,9 +84,9 @@ export function WaveformPlayer({
     return () => {
       ws.destroy();
     };
-  }, [track.id, track.duration, track.peaks, compact]);
+  }, [track.id, track.duration, track.peaks]);
 
-  // Sync progress
+  // Sync playback
   useEffect(() => {
     if (wavesurferRef.current && isCurrentTrack && activeDuration > 0) {
       const progress = activeCurrentTime / activeDuration;
@@ -130,124 +122,126 @@ export function WaveformPlayer({
   );
 
   return (
-    <div className="w-full flex flex-col gap-1.5">
-      {/* Waveform and Markers */}
-      <div className="relative group/wave flex items-center gap-3">
-        {/* Play/Pause Button */}
-        <button
-          onClick={handlePlayToggle}
-          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition-all duration-150 ${
-            isCurrentlyPlaying
-              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-              : "bg-black/5 text-zinc-800 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-100 dark:hover:bg-white/20"
-          }`}
-          aria-label={isCurrentlyPlaying ? "Pause" : "Lecture"}
-        >
-          {isCurrentlyPlaying ? (
-            <Pause className="w-3.5 h-3.5 fill-current" />
-          ) : (
-            <Play className="w-3.5 h-3.5 fill-current translate-x-0.5" />
-          )}
-        </button>
-
-        {/* Waveform Canvas */}
-        <div className="relative flex-1">
-          <div
-            ref={containerRef}
-            className="w-full h-8 cursor-pointer rounded-lg overflow-hidden"
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const ratio = (e.clientX - rect.left) / rect.width;
-              setLocalHoverTime(Math.max(0, ratio * activeDuration));
-            }}
-            onMouseLeave={() => setLocalHoverTime(null)}
-          />
-
-          {/* Hover Time */}
-          {localHoverTime !== null && (
-            <div
-              className="absolute -top-5 transform -translate-x-1/2 pointer-events-none px-1.5 py-0.5 rounded bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-[9px] font-mono shadow-sm"
-              style={{
-                left: `${Math.min(96, Math.max(4, (localHoverTime / activeDuration) * 100))}%`,
-              }}
-            >
-              {formatTime(localHoverTime)}
-            </div>
-          )}
-
-          {/* A-B Loop highlight */}
-          {abLoop && activeDuration > 0 && (
-            <div
-              className="absolute top-0 bottom-0 bg-blue-500/20 border-x border-blue-500/70 pointer-events-none"
-              style={{
-                left: `${(abLoop.start / activeDuration) * 100}%`,
-                width: `${((abLoop.end - abLoop.start) / activeDuration) * 100}%`,
-              }}
-            />
-          )}
-
-          {/* Timestamped Comment dots */}
-          {timestampedComments.map((comment) => {
-            const pct = Math.min(100, Math.max(0, ((comment.timestampSeconds || 0) / activeDuration) * 100));
-            return (
-              <button
-                key={comment.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (comment.timestampSeconds !== undefined && comment.timestampSeconds !== null) {
-                    if (isCurrentTrack) {
-                      seekTo(comment.timestampSeconds);
-                    } else {
-                      playTrack(track, comment.timestampSeconds);
-                    }
-                    onCommentClick?.(comment);
-                  }
-                }}
-                title={`[${formatTime(comment.timestampSeconds || 0)}] ${comment.author}: ${comment.content}`}
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-500 ring-1 ring-white dark:ring-zinc-900 shadow-sm z-10 hover:scale-150 transition-transform"
-                style={{ left: `${pct}%` }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Time counter */}
-        <div className="flex-shrink-0 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 select-none min-w-[58px] text-right">
-          {formatTime(activeCurrentTime)} / {formatTime(activeDuration)}
-        </div>
-
-        {/* Micro repetition button */}
-        <button
-          onClick={toggleLoop}
-          title={isLooping ? "Boucle active" : "Mettre en boucle"}
-          className={`p-1.5 rounded-md transition-colors ${
-            isLooping
-              ? "text-blue-600 dark:text-blue-400 bg-blue-500/10"
-              : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-          }`}
-        >
-          <Repeat className="w-3.5 h-3.5" />
-        </button>
-
-        {/* A-B loop button */}
-        {abLoop ? (
-          <button
-            onClick={clearAbLoop}
-            title="Annuler la boucle A-B"
-            className="text-[10px] font-mono text-rose-500 px-1 py-0.5 rounded bg-rose-500/10"
-          >
-            A-B✕
-          </button>
+    <div className="w-full flex items-center gap-2.5 sm:gap-3 select-none">
+      {/* Play/Pause Button */}
+      <button
+        onClick={handlePlayToggle}
+        className={`flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-150 ${
+          isCurrentlyPlaying
+            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
+            : "bg-black/5 text-zinc-800 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-100 dark:hover:bg-white/20"
+        }`}
+        aria-label={isCurrentlyPlaying ? "Pause" : "Lecture"}
+      >
+        {isCurrentlyPlaying ? (
+          <Pause className="w-3.5 h-3.5 fill-current" />
         ) : (
-          <button
-            onClick={handleSetLoopStart}
-            title="Définir une boucle A-B de 10s"
-            className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 px-1 py-0.5 rounded hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            A-B
-          </button>
+          <Play className="w-3.5 h-3.5 fill-current translate-x-0.5" />
         )}
+      </button>
+
+      {/* Start Time indicator */}
+      <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 min-w-[28px] text-right flex-shrink-0">
+        {formatTime(activeCurrentTime)}
+      </span>
+
+      {/* Waveform Canvas */}
+      <div className="relative flex-1 min-w-0">
+        <div
+          ref={containerRef}
+          className="w-full h-8 cursor-pointer rounded-md overflow-hidden"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            setLocalHoverTime(Math.max(0, ratio * activeDuration));
+          }}
+          onMouseLeave={() => setLocalHoverTime(null)}
+        />
+
+        {/* Hover Time Pill */}
+        {localHoverTime !== null && (
+          <div
+            className="absolute -top-5 transform -translate-x-1/2 pointer-events-none px-1.5 py-0.5 rounded bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-[9px] font-mono shadow-sm"
+            style={{
+              left: `${Math.min(96, Math.max(4, (localHoverTime / activeDuration) * 100))}%`,
+            }}
+          >
+            {formatTime(localHoverTime)}
+          </div>
+        )}
+
+        {/* A-B Loop highlight */}
+        {abLoop && activeDuration > 0 && (
+          <div
+            className="absolute top-0 bottom-0 bg-blue-500/20 border-x border-blue-500/70 pointer-events-none"
+            style={{
+              left: `${(abLoop.start / activeDuration) * 100}%`,
+              width: `${((abLoop.end - abLoop.start) / activeDuration) * 100}%`,
+            }}
+          />
+        )}
+
+        {/* Timestamped Comment dots */}
+        {timestampedComments.map((comment) => {
+          const pct = Math.min(100, Math.max(0, ((comment.timestampSeconds || 0) / activeDuration) * 100));
+          return (
+            <button
+              key={comment.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (comment.timestampSeconds !== undefined && comment.timestampSeconds !== null) {
+                  if (isCurrentTrack) {
+                    seekTo(comment.timestampSeconds);
+                  } else {
+                    playTrack(track, comment.timestampSeconds);
+                  }
+                  onCommentClick?.(comment);
+                }
+              }}
+              title={`[${formatTime(comment.timestampSeconds || 0)}] ${comment.author}: ${comment.content}`}
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-500 ring-1 ring-white dark:ring-zinc-900 shadow-sm z-10 hover:scale-150 transition-transform"
+              style={{ left: `${pct}%` }}
+            />
+          );
+        })}
       </div>
+
+      {/* End Time indicator */}
+      <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 min-w-[28px] text-left flex-shrink-0">
+        {formatTime(activeDuration)}
+      </span>
+
+      {/* Loop button */}
+      <button
+        onClick={toggleLoop}
+        title={isLooping ? "Boucle active" : "Mettre en boucle"}
+        className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${
+          isLooping
+            ? "text-blue-600 dark:text-blue-400 bg-blue-500/10"
+            : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+        }`}
+      >
+        <Repeat className="w-3.5 h-3.5" />
+      </button>
+
+      {/* A-B loop button */}
+      {abLoop ? (
+        <button
+          onClick={clearAbLoop}
+          title="Annuler boucle A-B"
+          className="text-[10px] font-mono text-rose-500 px-1 py-0.5 rounded bg-rose-500/10 flex-shrink-0"
+        >
+          A-B✕
+        </button>
+      ) : (
+        <button
+          onClick={handleSetLoopStart}
+          title="Définir une boucle de 10s"
+          className="text-[10px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 px-1 py-0.5 rounded hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 hidden sm:inline"
+        >
+          A-B
+        </button>
+      )}
     </div>
   );
 }

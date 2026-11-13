@@ -8,17 +8,17 @@ export function AmbientBackground() {
   const { isPlaying, currentTrack } = useAudio();
 
   // Determine ambient accent color based on active Act or mood
-  const getActGlow = () => {
+  const getMoodGlow = () => {
     if (!currentTrack) return "from-blue-500/15 via-indigo-500/10 to-transparent";
-    switch (currentTrack.actId) {
-      case "act-1":
-        return "from-amber-400/20 via-orange-400/10 to-transparent"; // Insouciance, terrasse, vin d'été
-      case "act-2":
-        return "from-rose-500/25 via-red-600/15 to-transparent"; // Sidération, attaque, bris de verre
-      case "act-3":
-        return "from-purple-600/25 via-indigo-700/15 to-transparent"; // La fosse, techno 124 BPM, Bataclan
-      case "act-4":
-        return "from-sky-500/20 via-teal-500/15 to-transparent"; // Secours, oratorio, Julie, baiser final
+    switch (currentTrack.sectionId) {
+      case "seq-1":
+        return "from-amber-400/20 via-orange-400/10 to-transparent"; // La terrasse
+      case "seq-2":
+        return "from-rose-500/25 via-red-600/15 to-transparent"; // L'attaque
+      case "seq-3":
+        return "from-purple-600/25 via-indigo-700/15 to-transparent"; // Le Bataclan
+      case "seq-4":
+        return "from-sky-500/20 via-teal-500/15 to-transparent"; // Les secours / le baiser
       default:
         return "from-blue-500/15 via-indigo-500/10 to-transparent";
     }
@@ -39,7 +39,7 @@ export function AmbientBackground() {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className={`absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full blur-[120px] bg-gradient-to-br ${getActGlow()}`}
+        className={`absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full blur-[120px] bg-gradient-to-br ${getMoodGlow()}`}
       />
 
       {/* Dynamic Ambient Gradient 2 */}
